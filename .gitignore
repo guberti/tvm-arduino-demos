@@ -1,2 +1,2 @@
-*.py
+examples/*/*.py
 *.pyc
