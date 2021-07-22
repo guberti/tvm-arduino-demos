@@ -65,6 +65,11 @@ Until that happens, this repository contains a script for generating arbitrary A
 python3 generate_project.py input/path/person_detection.tflite output/path/project
 ```
 
+# Memory Requirements
+If the Arduino does not have enough RAM to run this sketch, it will run out of memory. **If this occurs, `LED_BUILTIN` will begin blinking twice, pausing, and repeating this pattern**. If this occurs on your board, either choose a new Arduino that meets the memory requirement, or increase the memory available.
+
+By default, the Sony SPRESENSE only makes 768 kB (50%) of its memory available to the main core. Our model, however, requires [x] kB. We can increase this by going to `Tools -> Memory` and selecting at least 1408 kB.
+
 # Processing Static Images
 Before we connect our model to a live camera feed, let's feed it a few static images to make sure it works properly. I've picked out two images from the COCO 2017 dataset, [one containing a person](https://farm3.staticflickr.com/2529/4142190207_fe9f344501_z.jpg) and [one that does not](https://farm9.staticflickr.com/8087/8466331752_b60857e9f4_z.jpg).
 
@@ -95,7 +100,7 @@ static const char input_automobile[9216] = {
 };
 ```
 
-These can be generated with the script [`binary_to_c.py`](../../binary_to_c.py) with a command of the form:
+These can be generated with the script [`binary_to_c.py`](/binary_to_c.py) with a command of the form:
 
 ```
 python3 binary_to_c.py \
@@ -174,3 +179,77 @@ Not a person results:
 ```
 
 Here, the second element in our tensor represents the model's confidence the image contains a person, and the third element is the model's confidence it does not. We can ignore the first element for now. These results are promising, as it means our model correctly identified that the first image contained a person and the second did not. We're now ready to use this model for a live demo.
+
+# Live Demonstration
+
+**This part of the tutorial is specific to the Sony Spresense board. If using different hardware, consult the documentation to find out how images should be read from the camera.**
+
+To build our demo, we'll need to import the Spresense's camera library at the top of our program:
+
+```c
+#include "src/model.h"
+#include <Camera.h>
+
+//// Global variables ////
+static uint8_t INPUT_BUF[96 * 96];
+static uint8_t OUTPUT_BUF[3];
+static Model model;
+```
+
+In order to get the fastest framerate, we will use this library to stream 320x240 YUV422 frames to a callback function. We will set this up in our `setup` function:
+
+```c
+void setup() {
+  model = Model();
+  theCamera.begin();
+  theCamera.startStreaming(true, CamCB);
+}
+
+void loop() {}
+```
+
+Next, we must write our callback function `CamCB`. We can use the Spresense's built-in function to convert the image to grayscale:
+
+```c
+void CamCB(CamImage img) {
+  
+  //// Perform image resize ////
+  img.convertPixFormat(CAM_IMAGE_PIX_FMT_GRAY);
+  ...
+}
+```
+
+We must now crop and scale the image to be 96x96. The Spresense has a library function to do this, but it does not work on grayscale images (the `convertPixFormat` function doesn't work on 96x96 images either, so reversing the order is not possible). We'll just write our own crop + scale function instead:
+
+```c
+  uint8_t* originalBuf = (uint8_t*)img.getImgBuff();
+  uint16_t outIndex = 0;
+  
+  for (int i = 0; i < 96; ++i) {
+    for (int j = 0; j < 96; ++j) {
+      uint16_t brightness = 0;
+      
+      for (int m = 0; m < 2; m++) {
+        for (int n = 0; n < 2; n++) {
+          uint32_t sp_row = 24 + 2 * i + m;
+          uint32_t sp_col = 64 + 2 * j + n;
+          uint32_t index = 320 * sp_row + sp_col;
+          brightness += originalBuf[index];
+        }
+      }
+
+      INPUT_BUF[outIndex] = (uint8_t) (brightness / 4);
+      outIndex += 1;
+    }
+  }
+```
+
+All we have to do now is performe inference and compare the two values in our output tensor:
+
+```
+  model.inference(INPUT_BUF, OUTPUT_BUF);
+  boolean detectedPerson = OUTPUT_BUF[1] > OUTPUT_BUF[2];
+  digitalWrite(LED_BUILTIN, detectedPerson);
+```
+
+Now we only need to build and flash our sketch, and the Spresense should be running in no time! A completed version of this sketch may be found under [`examples/person_detection/person_detection.ino`](/examples/person_detection/person_detection.ino).
