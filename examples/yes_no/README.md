@@ -69,45 +69,13 @@ python3 generate_project.py input/path/yes_no.tflite output/path/project
 If the Arduino does not have enough RAM to run this sketch, it will run out of memory. **If this occurs, `LED_BUILTIN` will begin blinking twice, pausing, and repeating this pattern**. If this occurs on your board, either choose a new Arduino that meets the memory requirement, or increase the memory available.
 
 # Processing Static Audio
-Before we connect our model to a live audio stream, let's feed it a few static files to ensure it works properly. 
+Before we connect our model to a live audio stream, let's feed it a few static files to ensure it works properly. I've included two `.wav` files from Google's [Speech Commands dataset](https://www.tensorflow.org/datasets/catalog/speech_commands) under [`examples/yes_no/data`](data/). They're also included below, translated into `.mov` files (since GitHub doesn't support built-in playback of audio files - only video).
 
-To feed these images into our model, we'll first need to convert them to 96x96 grayscale images. This can be done with ImageMagick or any other image editor. 96x96 grayscale versions of these images are available under [`examples/person_detection/data`](data/).
+https://user-images.githubusercontent.com/3069006/126720124-f8685e12-8a30-4f56-b187-0d9b423f3601.mov
 
-<p align="center">
-  <img alt="Person" src="https://user-images.githubusercontent.com/3069006/126687844-140a94db-fe66-4890-b10a-fb0aada1e18a.png" width="40%">
-&nbsp; &nbsp; &nbsp;
-  <img alt="Not a person" src="https://user-images.githubusercontent.com/3069006/126687802-0450c25f-3580-4dcc-a3e1-e854baf34363.png" width="40%">
-</p>
+https://user-images.githubusercontent.com/3069006/126720147-781c4e99-4b14-474b-a55a-6f061e301061.mov
 
-The PNG format contains a lot of unnecessary header formatting that would make our images difficult for our Arduino sketch to parse. One way to fix this is by converting them to [raw images](https://en.wikipedia.org/wiki/Raw_image_format), containing nothing but a list of 9216 unsigned 8-bit integers, each representing the brightness of a specific pixel. This can be done with ImageMagick:
-
-```
-convert person_grayscale.png -depth 8 r:person.raw
-```
-
-For your convenience, raw images have also been included in [`examples/person_detection/data`](data/).
-
-Lastly, we must deal with the fact Arduino will only compile code files (with the extensions `.ino`, `.h`, `.c`, `.cpp`). We can work around this restriction by encoding our images as C byte arrays:
-
-```c
-static const char input_automobile[9216] = {
-  0xff,
-  0xff,
-  ...
-  0xff,
-};
-```
-
-These can be generated with the script [`binary_to_c.py`](/binary_to_c.py) with a command of the form:
-
-```
-python3 binary_to_c.py \
-  examples/person_detection/data/person.raw \
-  examples/person_detection/person.c \
-  --name person_data 
-```
-
-Pre-existing versions of these files may be found under [`examples/person_detection`](/).
+While their are audio models that take raw waveforms as input, the model we are using wants spectograph slices. 
 
 # Testing Our Model
 
