@@ -1,4 +1,4 @@
-static const char person_data[9216] = {
+static const char cat_data[9216] = {
   0x4d,
   0x4b,
   0x4b,

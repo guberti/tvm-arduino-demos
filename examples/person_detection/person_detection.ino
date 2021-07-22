@@ -38,7 +38,6 @@ void CamCB(CamImage img) {
 }
 
 void setup() {
-  Serial.begin(9600);
   model = Model();
   theCamera.begin();
   theCamera.startStreaming(true, CamCB);
