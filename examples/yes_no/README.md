@@ -75,7 +75,28 @@ https://user-images.githubusercontent.com/3069006/126720124-f8685e12-8a30-4f56-b
 
 https://user-images.githubusercontent.com/3069006/126720147-781c4e99-4b14-474b-a55a-6f061e301061.mov
 
-While their are audio models that take raw waveforms as input, the model we are using wants spectograph slices. 
+To better understand what we're working with, let's understand what's inside these `.wav` files. Each contains the air pressure at a specific time (a value from -32768 to 32767), sampled at 16 kHz. Since each audio clip is one second long, each contains 16,000 samples, each of which is a signed 16 bit integer. If we scale these values to be floats from -1.0 to 1.0, we can plot their waveforms:
+
+```python
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+def load_wav(filename):
+	binary = tf.io.read_file(filename)
+	audio, _ = tf.audio.decode_wav(binary)
+	return tf.squeeze(audio, axis=-1)
+
+fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+yes_ax.plot(load_wav("yes.wav"))
+yes_ax.set_title('Yes Waveform')
+no_ax.plot(load_wav("no.wav"))
+no_ax.set_title('No Waveform')
+plt.show()
+```
+
+![waveform_plot](https://user-images.githubusercontent.com/3069006/126737265-1ffb7fbc-3f5a-4f2b-b9ca-8b8045439fcd.png)
+
+While their are audio models that take raw waveforms as input, the model we are using wants overlapping spectrogram slices. 
 
 # Testing Our Model
 
