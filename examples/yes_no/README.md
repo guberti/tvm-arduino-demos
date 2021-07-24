@@ -87,16 +87,60 @@ def load_wav(filename):
 	return tf.squeeze(audio, axis=-1)
 
 fig, (yes_ax, no_ax) = plt.subplots(1, 2)
-yes_ax.plot(load_wav("yes.wav"))
+yes_ax.plot(load_wav("data/yes.wav"))
 yes_ax.set_title('Yes Waveform')
-no_ax.plot(load_wav("no.wav"))
+no_ax.plot(load_wav("data/no.wav"))
 no_ax.set_title('No Waveform')
 plt.show()
 ```
 
 ![waveform_plot](https://user-images.githubusercontent.com/3069006/126737265-1ffb7fbc-3f5a-4f2b-b9ca-8b8045439fcd.png)
 
-While their are audio models that take raw waveforms as input, the model we are using wants overlapping spectrogram slices. 
+While their are audio models that take raw waveforms as input, the model we are using wants overlapping spectrogram slices, also called an audio fingerprint. Each slice will consist of 30 ms of audio (480 16-bit integers), and each slice will overlap 10 ms with the slices before and after. Since the first and last slices do not overlap, this means we will need 49 slices to cover our one-second audio cliips.
+
+Within each slice, we will group frequencies into 40 buckets, and then measure the loudness of the frequencies in each bucket. This will produce 40 `float32` values for each audio slide. We will discuss in more detail how to sort these frequencies when we implement this on Arduino, but for now we can use Tensorflow's `audio_microfrontend` function. These fingerprints can be plotted as spectograms, where the x-axis represents time the 30 ms window was taken, the y-axis represents the bucket number, and brighter pixels indicate higher values.
+
+```python
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from tensorflow.lite.experimental.microfrontend.python.ops import (
+    audio_microfrontend_op as frontend_op,
+)
+
+def get_spectrogram(filename):
+    binary = tf.io.read_file(filename)
+    audio, _ = tf.audio.decode_wav(binary, desired_channels=1, desired_samples=16000)
+
+    int16_input = tf.cast(tf.multiply(audio, 32768), tf.int16)
+    micro_frontend = frontend_op.audio_microfrontend(
+        int16_input,
+        sample_rate=16000,
+        window_size=30,
+        window_step=20,
+        num_channels=40,
+        out_scale=1,
+        out_type=tf.float32,
+    )
+    output = tf.multiply(micro_frontend, (10.0 / 256.0))
+    return np.rot90(output)
+
+
+fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+yes_ax.imshow(
+get_spectrogram("data/yes.wav"), cmap="viridis", interpolation="nearest"
+)
+yes_ax.set_title("Yes Waveform")
+no_ax.imshow(
+get_spectrogram("data/no.wav"), cmap="viridis", interpolation="nearest"
+)
+no_ax.set_title("No Waveform")
+plt.show()
+```
+
+![spectogram_plot](https://user-images.githubusercontent.com/3069006/126848626-5825e58d-a607-4726-8a48-74767d282389.png)
+
+The next step we must take to preprocess these files 
 
 # Testing Our Model
 
