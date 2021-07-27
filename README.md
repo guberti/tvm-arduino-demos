@@ -6,7 +6,7 @@ All we need is an Arduino-compatible board with enough flash and RAM. In theory,
 - [Sony SPRESENSE](https://www.adafruit.com/product/4419) (with optional [5 MP Camera](https://www.adafruit.com/product/4417))
 - [Arduino Nano 33 BLE Sense](https://store.arduino.cc/usa/nano-33-ble-senseurl)
 - [Teensy 4.1](https://www.pjrc.com/store/teensy41.html) (with optional external RAM and flash chips)
-- [Teensy 4.0)(https://www.pjrc.com/store/teensy40.html)
+- [Teensy 4.0](https://www.pjrc.com/store/teensy40.html)
 
 ## Software required
 Arduino support isn't yet merged into TVM, so we'll use [PR #8493](https://github.com/apache/tvm/pull/8493). Hopefully, this will be merged soon, along with command-line support for project generation, letting us skip writing Python code to actually generate the model. We'll need to clone this repository, build it from source, and add it to our Python path.
@@ -47,3 +47,5 @@ set(HIDE_PRIVATE_SYMBOLS ON)
 Follow the instructions for installing the Arduino IDE on your operating system, and install the packages for your boards like normal.
 
 Note that the Sony SPRESENSE library has [a major bug](https://github.com/sonydevworld/spresense/issues/200) that will cause TVM to fail. This issue should be fixed in version 2.3.0 of the library, but until that occurs, you can use the [develop branch](https://github.com/sonydevworld/spresense-nuttx/compare/develop) for spresense-nuttx.
+
+For the Nano 33 BLE, running out of memory will cause the board to enter a bad state, in which it will not communicate with the serial port and new code cannot be uploaded. To fix this issue, double-tap the reset button to force the board to enter the bootloader. Note that this could only be triggered by a bug - if the model detects it has run out of memory, it will usually fail gracefully and flash an error code on the LED.
