@@ -14,9 +14,9 @@ https://github.com/guberti/tvm-arduino-demos.git
 
 If you're using an Spresense board, you should be able to open `yes_no.ino` with the Arduino IDE, flash your board, and see the script work. However, in this tutorial we will demonstrate how a sketch like this could be built from scratch.
 
-To start, we'll need a pre-trained machine learning model. TVM supports generating Arduino projects from all popular model formats (including PyTorch, TensorFlow, TFLite, MXNet, Onnx...). Here, we will use [`models/person_detection.tflite`](../models/person_detection.tflite). It was taken directly from [TFLite's micro examples page](https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples), and will allow us to easily compare performance.
+To start, we'll need a pre-trained machine learning model. TVM supports generating Arduino projects from all popular model formats (including PyTorch, TensorFlow, TFLite, MXNet, Onnx...). Here, we will use [`models/person_detection.tflite`](../models/yes_no.tflite). It was taken directly from [TFLite's micro examples page](https://github.com/tensorflow/tflite-micro/tree/main/tensorflow/lite/micro/examples), and will allow us to easily compare performance.
 
-This model takes as input 49 spectogram slices that each consist of 40 signed 8-bit integers. Each slice has a duration of 30ms, and a stride (e.g. "step over") of 10 ms.
+This model takes as input 49 spectogram slices that each consist of 40 signed 8-bit integers. Each slice has a duration of 30ms, and a stride (e.g. "step over") of 20 ms.
 
 # Generating a Project
 Support for command-line project generation doesn't exist as of 07/20/2021, so we'll need to write a short Python script. We'll need a few imports and constants:
@@ -69,13 +69,106 @@ python3 generate_project.py input/path/yes_no.tflite output/path/project
 If the Arduino does not have enough RAM to run this sketch, it will run out of memory. **If this occurs, `LED_BUILTIN` will begin blinking twice, pausing, and repeating this pattern**. If this occurs on your board, either choose a new Arduino that meets the memory requirement, or increase the memory available.
 
 # Processing Static Audio
-Before we connect our model to a live audio stream, let's feed it a few static files to ensure it works properly. I've included two `.wav` files from Google's [Speech Commands dataset](https://www.tensorflow.org/datasets/catalog/speech_commands) under [`examples/yes_no/data`](data/). They're also included below, translated into `.mov` files (since GitHub doesn't support built-in playback of audio files - only video).
+Before we connect our model to a live audio stream, let's feed it a few static files to ensure it works properly. I chose to use these two files from Google's [Speech Commands dataset](https://www.tensorflow.org/datasets/catalog/speech_commands).
 
-https://user-images.githubusercontent.com/3069006/126720124-f8685e12-8a30-4f56-b187-0d9b423f3601.mov
+```python
+YES_EXAMPLE = DATASET_DIR + "/yes/0a2b400e_nohash_0.wav"
+NO_EXAMPLE = DATASET_DIR + "/no/0a2b400e_nohash_0.wav"
+```
 
-https://user-images.githubusercontent.com/3069006/126720147-781c4e99-4b14-474b-a55a-6f061e301061.mov
+You can listen to them here:
 
-While their are audio models that take raw waveforms as input, the model we are using wants spectograph slices. 
+https://user-images.githubusercontent.com/3069006/127215520-bbcd5f87-5416-4367-bd27-47297e44b7bf.mp4
+
+https://user-images.githubusercontent.com/3069006/127215528-f03e2efe-7d12-4c76-945a-065eeee42d6b.mp4
+
+First, let's visualize our `.wav` files. Each contains the air pressure at a specific time (a value from -32768 to 32767), sampled at 16 kHz. Since each audio clip is one second long, each contains 16,000 samples, each of which is a signed 16 bit integer. If we plot these over time, we get a waveform:
+
+```python
+def load_wav_as_samples(filename):
+    binary = tf.io.read_file(filename)
+    audio, _ = tf.audio.decode_wav(binary, desired_channels=1, desired_samples=16000)
+    tensor = tf.cast(tf.multiply(audio, 32768), tf.int16)
+    array = np.rot90(tensor.eval(session=tf.compat.v1.Session()))[0]
+    return array
+
+def graph_waveforms():
+    fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+    yes_ax.plot(load_wav_as_samples(YES_EXAMPLE))
+    yes_ax.set_title('Yes Waveform')
+    no_ax.plot(load_wav_as_samples(NO_EXAMPLE))
+    no_ax.set_title('No Waveform')
+    fig.set_size_inches(19 * 0.7, 10 * 0.7)
+    fig.set_dpi(400)
+    plt.show()
+
+graph_waveforms()
+```
+
+![waveform](https://user-images.githubusercontent.com/3069006/127216358-2f1ff89d-8b07-4c80-99e7-2aeb88e3afa6.png)
+
+While their are audio models that take raw waveforms as input, the model we are using wants overlapping spectrogram slices, also called an audio fingerprint. Each slice will consist of 30 ms of audio (480 16-bit integers), and each slice will overlap 10 ms with the slices before and after. Since the first and last slices do not overlap, this means we will need 49 slices to cover our one-second audio cliips.
+
+Within each slice, we will group frequencies into 40 buckets, and then measure the loudness of the frequencies in each bucket. This will produce 40 `float32` values for each audio slide. We will discuss in more detail how to sort these frequencies when we implement this on Arduino, but for now we can use Tensorflow's `get_features_for_wav` function. 
+
+Since many Arduinos lack a floating point module and cannot perform float arithematic efficiently, the `tflite` model we're using is **quantized** and uses integers for its calculations. Thus, we'll need to convert our input data to integers using the same quantization parameters we did for our model. This will give us a 40 x 49 array of signed, 8-bit integers. 
+
+We can then plot these as a spectogram:
+
+```python
+def get_quantized(wav_filename, sess):
+  test_data = audio_processor.get_features_for_wav(wav_filename, model_settings, sess)[0]
+
+  input_scale = 0.10140931606292725
+  input_zero_point = -128
+  test_data = test_data / input_scale + input_zero_point
+  
+  test_data = test_data.astype(np.int8)
+  return test_data
+
+def graph_spectograms():
+    with tf.Session() as sess:
+      yes_array = get_quantized(YES_EXAMPLE, sess)
+      no_array = get_quantized(NO_EXAMPLE, sess)
+
+    fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+    yes_ax.imshow(yes_array.T, cmap="viridis", origin="lower")
+    yes_ax.set_title("Yes Waveform")
+    no_ax.imshow(no_array.T, cmap="viridis", origin="lower")
+    no_ax.set_title("No Waveform")
+    fig.set_size_inches(19 * 0.7, 10 * 0.7)
+    fig.set_dpi(400)
+    plt.show()
+
+graph_spectograms()
+```
+![spectogram](https://user-images.githubusercontent.com/3069006/127217045-a2703540-d513-4d36-a1d7-71e560dcc378.png)
+
+In these spectograms, the x-axis represents time. As seen in the waveform, the second half of the clips is silent, so the lack of data in the right half of the graph makes sense.
+
+Next, we must quantize and flatten these files. Since the Arduino board we are targeting probably lacks a floating-point module, the `.tflite` file has been quantized and expects an input tensor of `int8_t`s. 
+
+Lastly, we must deal with the fact Arduino will only compile code files (with the extensions `.ino`, `.h`, `.c`, `.cpp`). We can work around this restriction by encoding our images as C byte arrays:
+
+```c
+static const char input_yes[1920] = {
+  0xff,
+  0xff,
+  ...
+  0xff,
+};
+```
+
+These can be generated with the script [`binary_to_c.py`](/binary_to_c.py) with a command of the form:
+
+```
+python3 binary_to_c.py \
+  examples/yes_no/data/yes_0a2b400e_nohash_0.raw \
+  examples/yes_no/yes.c \
+  --name yes_data 
+```
+
+Pre-existing versions of these files may be found under [`examples/yes_no`](/).
 
 # Testing Our Model
 
@@ -99,18 +192,18 @@ void loop() {
 First, we'll add `#include` statements for the test images we just generated:
 
 ```c
-#include "cat.c"
-#include "person.c"
+#include "yes.c"
+#include "no.c"
 ```
 
 We'll then define a function that will run inference on an image, and display the results on the serial monitor:
 
 ```c
-void testInference(uint8_t input_data[9216]) {
-  uint8_t output[3];
+void testInference(int8_t input_data[1920]) {
+  int8_t output[4];
   model.inference(input_data, output);
   
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 4; i++) {
     Serial.print(output[i]);
     Serial.print(", ");
   }
@@ -125,11 +218,11 @@ void setup() {
   Serial.begin(9600);
   model = Model();
 
-  Serial.println("Person results:");
-  testInference(person_data);
+  Serial.println("Yes results:");
+  testInference(yes_data);
   
-  Serial.println("Not a person results:");
-  testInference(cat_data);
+  Serial.println("No results:");
+  testInference(no_data);
 
   Serial.end();
 }
@@ -138,10 +231,10 @@ void setup() {
 If we then run our sketch and set the serial monitor to `9600` baud, we'll see the following output:
 
 ```
-Person results:
-39, 235, 63, 
-Not a person results:
-20, 91, 225,
+Yes results:
+-128, -127, 126, -127, 
+No results:
+-128, -128, -128, 127, 
 ```
 
-Here, the second element in our tensor represents the model's confidence the image contains a person, and the third element is the model's confidence it does not. We can ignore the first element for now. These results are promising, as it means our model correctly identified that the first image contained a person and the second did not. We're now ready to use this model for a live demo.
+The four values here represent the model's confidence that the input data is silence, an unknown word, "yes", and "no" respectively. Thus, we can see our model correctly identified both the "yes" and the "no" audio samples.
