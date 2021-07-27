@@ -1,12 +1,36 @@
 #include "src/model.h"
+#include "yes.c"
+#include "no.c"
 
+//// Global variables ////
 static Model model;
 
-void setup() {
-  model = Model();
-  //model.inference(input_data, output_data);
+void testInference(int8_t input_data[1920]) {
+  int8_t output[4];
+  model.inference(input_data, output);
+  
+  for(int i = 0; i < 4; i++) {
+    Serial.print(output[i]);
+    Serial.print(", ");
+  }
+  Serial.println();
 }
 
+void setup() {
+  Serial.begin(9600);
+  model = Model();
+
+  Serial.println("Yes results:");
+  testInference(yes_data);
+  
+  Serial.println("No results:");
+  testInference(no_data);
+
+  Serial.end();
+}
 void loop() {
-  // put your main code here, to run repeatedly:
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(100);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(100);
 }
