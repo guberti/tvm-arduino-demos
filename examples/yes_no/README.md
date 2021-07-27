@@ -75,23 +75,32 @@ https://user-images.githubusercontent.com/3069006/126720124-f8685e12-8a30-4f56-b
 
 https://user-images.githubusercontent.com/3069006/126720147-781c4e99-4b14-474b-a55a-6f061e301061.mov
 
+We'll first import the libraries we need to process and graph our audio clips:
+
+```python
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from tensorflow.lite.experimental.microfrontend.python.ops import (
+    audio_microfrontend_op as frontend_op,
+)
+```
+
 To better understand what we're working with, let's understand what's inside these `.wav` files. Each contains the air pressure at a specific time (a value from -32768 to 32767), sampled at 16 kHz. Since each audio clip is one second long, each contains 16,000 samples, each of which is a signed 16 bit integer. If we scale these values to be floats from -1.0 to 1.0, we can plot their waveforms:
 
 ```python
-import tensorflow as tf
-import matplotlib.pyplot as plt
-
-def load_wav(filename):
+def load_wav_as_floats(filename):
 	binary = tf.io.read_file(filename)
 	audio, _ = tf.audio.decode_wav(binary)
 	return tf.squeeze(audio, axis=-1)
 
-fig, (yes_ax, no_ax) = plt.subplots(1, 2)
-yes_ax.plot(load_wav("data/yes.wav"))
-yes_ax.set_title('Yes Waveform')
-no_ax.plot(load_wav("data/no.wav"))
-no_ax.set_title('No Waveform')
-plt.show()
+def graph_waveforms():
+	fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+	yes_ax.plot(load_wav_as_floats("data/yes.wav"))
+	yes_ax.set_title('Yes Waveform')
+	no_ax.plot(load_wav_as_floats("data/no.wav"))
+	no_ax.set_title('No Waveform')
+	plt.show()
 ```
 
 ![waveform_plot](https://user-images.githubusercontent.com/3069006/126737265-1ffb7fbc-3f5a-4f2b-b9ca-8b8045439fcd.png)
@@ -101,13 +110,6 @@ While their are audio models that take raw waveforms as input, the model we are 
 Within each slice, we will group frequencies into 40 buckets, and then measure the loudness of the frequencies in each bucket. This will produce 40 `float32` values for each audio slide. We will discuss in more detail how to sort these frequencies when we implement this on Arduino, but for now we can use Tensorflow's `audio_microfrontend` function. These fingerprints can be plotted as spectograms, where the x-axis represents time the 30 ms window was taken, the y-axis represents the bucket number, and brighter pixels indicate higher values.
 
 ```python
-import numpy as np
-import tensorflow as tf
-import matplotlib.pyplot as plt
-from tensorflow.lite.experimental.microfrontend.python.ops import (
-    audio_microfrontend_op as frontend_op,
-)
-
 def get_spectrogram(filename):
     binary = tf.io.read_file(filename)
     audio, _ = tf.audio.decode_wav(binary, desired_channels=1, desired_samples=16000)
@@ -123,24 +125,64 @@ def get_spectrogram(filename):
         out_type=tf.float32,
     )
     output = tf.multiply(micro_frontend, (10.0 / 256.0))
-    return np.rot90(output)
+    return output
 
-
-fig, (yes_ax, no_ax) = plt.subplots(1, 2)
-yes_ax.imshow(
-get_spectrogram("data/yes.wav"), cmap="viridis", interpolation="nearest"
-)
-yes_ax.set_title("Yes Waveform")
-no_ax.imshow(
-get_spectrogram("data/no.wav"), cmap="viridis", interpolation="nearest"
-)
-no_ax.set_title("No Waveform")
-plt.show()
+def graph_spectograms():
+	fig, (yes_ax, no_ax) = plt.subplots(1, 2)
+	yes_ax.imshow(
+	np.rot90(get_spectrogram("data/yes.wav")), cmap="viridis", interpolation="nearest"
+	)
+	yes_ax.set_title("Yes Waveform")
+	no_ax.imshow(
+	np.rot90(get_spectrogram("data/no.wav")), cmap="viridis", interpolation="nearest"
+	)
+	no_ax.set_title("No Waveform")
+	plt.show()
 ```
 
 ![spectogram_plot](https://user-images.githubusercontent.com/3069006/126848626-5825e58d-a607-4726-8a48-74767d282389.png)
 
-The next step we must take to preprocess these files 
+Next, we must quantize and flatten these files. Since the Arduino board we are targeting probably lacks a floating-point module, the `.tflite` file has been quantized and expects an input tensor of `int8_t`s. 
+
+```python
+def get_quantized_spectogram(filename):
+    float_data = get_spectrogram(filename)
+    flattened = float_data.numpy().reshape(1, 1960)
+
+    input_scale = 0.10140931606292725
+    input_zero_point = -128
+
+    affine = flattened / input_scale + input_zero_point
+    return affine.astype(np.int8)
+
+def gen_raw_spectograms():
+    yes_raw = get_quantized_spectogram("data/yes.wav")
+    yes_raw.tofile("data/yes_quant.raw")
+    yes_raw = get_quantized_spectogram("data/no.wav")
+    yes_raw.tofile("data/no_quant.raw")	
+```
+
+Lastly, we must deal with the fact Arduino will only compile code files (with the extensions `.ino`, `.h`, `.c`, `.cpp`). We can work around this restriction by encoding our images as C byte arrays:
+
+```c
+static const char input_yes[1920] = {
+  0xff,
+  0xff,
+  ...
+  0xff,
+};
+```
+
+These can be generated with the script [`binary_to_c.py`](/binary_to_c.py) with a command of the form:
+
+```
+python3 binary_to_c.py \
+  examples/yes_no/data/yes_quant.raw \
+  examples/yes_no/yes.c \
+  --name yes_data 
+```
+
+Pre-existing versions of these files may be found under [`examples/yes_no`](/).
 
 # Testing Our Model
 
@@ -164,18 +206,18 @@ void loop() {
 First, we'll add `#include` statements for the test images we just generated:
 
 ```c
-#include "cat.c"
-#include "person.c"
+#include "yes.c"
+#include "no.c"
 ```
 
 We'll then define a function that will run inference on an image, and display the results on the serial monitor:
 
 ```c
-void testInference(uint8_t input_data[9216]) {
-  uint8_t output[3];
+void testInference(uint8_t input_data[1920]) {
+  uint8_t output[4];
   model.inference(input_data, output);
   
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 4; i++) {
     Serial.print(output[i]);
     Serial.print(", ");
   }
@@ -190,11 +232,11 @@ void setup() {
   Serial.begin(9600);
   model = Model();
 
-  Serial.println("Person results:");
-  testInference(person_data);
+  Serial.println("Yes results:");
+  testInference(yes_data);
   
-  Serial.println("Not a person results:");
-  testInference(cat_data);
+  Serial.println("No results:");
+  testInference(no_data);
 
   Serial.end();
 }
