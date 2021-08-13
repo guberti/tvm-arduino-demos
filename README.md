@@ -4,9 +4,12 @@ This repository intends to show users how [Apache TVM](https://github.com/apache
 ## Hardware required
 All we need is an Arduino-compatible board with enough flash and RAM. In theory, any board with enough flash and RAM should work, but the following boards have been tested and shown to work:
 - [Sony SPRESENSE](https://www.adafruit.com/product/4419) (with optional [5 MP Camera](https://www.adafruit.com/product/4417))
-- [Arduino Nano 33 BLE Sense](https://store.arduino.cc/usa/nano-33-ble-senseurl)
+- [Arduino Nano 33 BLE](https://store.arduino.cc/usa/nano-33-ble-senseurl)
 - [Teensy 4.1](https://www.pjrc.com/store/teensy41.html) (with optional external RAM and flash chips)
 - [Teensy 4.0](https://www.pjrc.com/store/teensy40.html)
+- [Arduino Due](https://store.arduino.cc/usa/due)
+- [Feather S2](https://www.adafruit.com/product/4769)
+- [Wio Terminal](https://www.seeedstudio.com/Wio-Terminal-p-4509.html)
 
 ## Software required
 Arduino support isn't yet merged into TVM, so we'll use [PR #8493](https://github.com/apache/tvm/pull/8493). Hopefully, this will be merged soon, along with command-line support for project generation, letting us skip writing Python code to actually generate the model. We'll need to clone this repository, build it from source, and add it to our Python path.
