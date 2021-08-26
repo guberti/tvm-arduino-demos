@@ -2,12 +2,9 @@
 #include "yes.c"
 #include "no.c"
 
-//// Global variables ////
-static Model model;
-
 void testInference(int8_t input_data[1920]) {
   int8_t output[4];
-  model.inference(input_data, output);
+  TVMExecute(input_data, output);
   
   for(int i = 0; i < 4; i++) {
     Serial.print(output[i]);
@@ -18,7 +15,7 @@ void testInference(int8_t input_data[1920]) {
 
 void setup() {
   Serial.begin(9600);
-  model = Model();
+  TVMInitialize();
 
   Serial.println("Yes results:");
   testInference(yes_data);

@@ -4,7 +4,6 @@
 //// Global variables ////
 static uint8_t INPUT_BUF[96 * 96];
 static uint8_t OUTPUT_BUF[3];
-static Model model;
 
 //// Function called by camera streaming ////
 void CamCB(CamImage img) {
@@ -32,13 +31,13 @@ void CamCB(CamImage img) {
     }
   }
 
-  model.inference(INPUT_BUF, OUTPUT_BUF);
+  TVMExecute(INPUT_BUF, OUTPUT_BUF);
   boolean detectedPerson = OUTPUT_BUF[1] > OUTPUT_BUF[2];
   digitalWrite(LED_BUILTIN, detectedPerson);
 }
 
 void setup() {
-  model = Model();
+  TVMInitialize();
   theCamera.begin();
   theCamera.startStreaming(true, CamCB);
 }

@@ -1,4 +1,4 @@
-// tvm target: c -keys=cpu -link-params=1 -mcpu=cortex-m33 -model=nrf5340dk -runtime=c -system-lib=1
+// tvm target: c -keys=cpu -executor=aot -link-params=1 -mcpu=cortex-m4 -model=cxd5602gg -runtime=c -unpacked-api=1
 #define TVM_EXPORTS
 #include "../../src/standalone_crt/include/tvm/runtime/c_runtime_api.h"
 #include "../../src/standalone_crt/include/tvm/runtime/c_backend_api.h"
@@ -2168,31 +2168,97 @@ static const int16_t __tvm_param__p6[1] = {
 #ifdef __cplusplus
 extern "C"
 #endif
-TVM_DLL int32_t tvmgen_default_fused_nn_softmax(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* T_softmax_norm = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  if (!(arg0_strides == NULL)) {
+TVM_DLL int32_t tvmgen_default_fused_nn_conv2d_add_cast_multiply_add_right_shift_cast_add_clip_cast_clip(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4, void* arg5, void* arg6) {
+  void* placeholder = arg0;
+  void* placeholder1 = arg1;
+  void* placeholder2 = arg2;
+  void* placeholder3 = arg3;
+  void* placeholder4 = arg4;
+  void* placeholder5 = arg5;
+  void* compute = arg6;
+  void* PaddedInput = TVMBackendAllocWorkspace(1, 0, (uint64_t)5336, 0, 16);
+  if (PaddedInput == NULL) {
+    return -1;
   }
-  if (!(arg1_strides == NULL)) {
+  for (int32_t i0_i1_fused = 0; i0_i1_fused < 58; ++i0_i1_fused) {
+    for (int32_t i2 = 0; i2 < 46; ++i2) {
+      ((int16_t*)PaddedInput)[(((i0_i1_fused * 46) + i2))] = (((((4 <= i0_i1_fused) && (i0_i1_fused < 53)) && (3 <= i2)) && (i2 < 43)) ? ((int16_t*)placeholder)[((((i0_i1_fused * 40) + i2) - 163))] : (int16_t)0);
+    }
   }
-  void* T_softmax_maxelem = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)4, 2, 32);
+  for (int32_t i0_i1_fused_i2_fused = 0; i0_i1_fused_i2_fused < 500; ++i0_i1_fused_i2_fused) {
+    void* Conv2dOutput = TVMBackendAllocWorkspace(1, 0, (uint64_t)4, 0, 32);
+    if (Conv2dOutput == NULL) {
+      return -1;
+    }
+    for (int32_t i3 = 0; i3 < 8; ++i3) {
+      ((int32_t*)Conv2dOutput)[(0)] = 0;
+      for (int32_t ry = 0; ry < 10; ++ry) {
+        for (int32_t rx = 0; rx < 8; ++rx) {
+          ((int32_t*)Conv2dOutput)[(0)] = (((int32_t*)Conv2dOutput)[(0)] + (((int32_t)((int16_t*)PaddedInput)[((((((i0_i1_fused_i2_fused / 20) * 92) + (ry * 46)) + ((i0_i1_fused_i2_fused % 20) * 2)) + rx))]) * ((int32_t)((int16_t*)placeholder1)[((((ry * 64) + (rx * 8)) + i3))])));
+        }
+      }
+      int32_t _1 = ((int32_t)((((((int64_t)((int32_t*)Conv2dOutput)[(0)]) + ((int64_t)((int32_t*)placeholder2)[(i3)])) * ((int64_t*)placeholder3)[(i3)]) + ((int64_t*)placeholder4)[(i3)]) >> ((int64_t*)placeholder5)[(i3)])) - 128;
+      int32_t _2 = (_1) < (127) ? (_1) : (127);
+      int8_t _3 = (int8_t)((_2) > (-128) ? (_2) : (-128));
+      int8_t _4 = (int8_t)127;
+      int8_t _5 = (_3) < (_4) ? (_3) : (_4);
+      int8_t _6 = (int8_t)-128;
+      ((int8_t*)compute)[(((i0_i1_fused_i2_fused * 8) + i3))] = ((_5) > (_6) ? (_5) : (_6));
+    }
+    if (TVMBackendFreeWorkspace(1, 0, Conv2dOutput) != 0) {
+      return -1;
+    }
+  }
+  if (TVMBackendFreeWorkspace(1, 0, PaddedInput) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+#ifdef __cplusplus
+extern "C"
+#endif
+TVM_DLL int32_t tvmgen_default_fused_divide_add_round_cast_clip_cast(void* arg0, void* arg1) {
+  void* placeholder = arg0;
+  void* T_cast = arg1;
+  for (int32_t ax1_inner = 0; ax1_inner < 4; ++ax1_inner) {
+    int32_t _1 = (int32_t)roundf(((((float*)placeholder)[(ax1_inner)] * 2.560000e+02f) + -1.280000e+02f));
+    int32_t _2 = (_1) < (127) ? (_1) : (127);
+    ((int8_t*)T_cast)[(ax1_inner)] = ((int8_t)((_2) > (-128) ? (_2) : (-128)));
+  }
+  return 0;
+}
+
+#ifdef __cplusplus
+extern "C"
+#endif
+TVM_DLL int32_t tvmgen_default_fused_reshape_cast_subtract_1(void* arg0, void* arg1, void* arg2) {
+  void* placeholder = arg0;
+  void* placeholder1 = arg1;
+  void* T_subtract = arg2;
+  for (int32_t ax0_ax1_fused = 0; ax0_ax1_fused < 49; ++ax0_ax1_fused) {
+    for (int32_t ax2 = 0; ax2 < 40; ++ax2) {
+      ((int16_t*)T_subtract)[(((ax0_ax1_fused * 40) + ax2))] = (((int16_t)((int8_t*)placeholder)[(((ax0_ax1_fused * 40) + ax2))]) - ((int16_t*)placeholder1)[(0)]);
+    }
+  }
+  return 0;
+}
+
+#ifdef __cplusplus
+extern "C"
+#endif
+TVM_DLL int32_t tvmgen_default_fused_nn_softmax(void* arg0, void* arg1) {
+  void* placeholder = arg0;
+  void* T_softmax_norm = arg1;
+  void* T_softmax_maxelem = TVMBackendAllocWorkspace(1, 0, (uint64_t)4, 2, 32);
   if (T_softmax_maxelem == NULL) {
     return -1;
   }
-  void* T_softmax_exp = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)16, 2, 32);
+  void* T_softmax_exp = TVMBackendAllocWorkspace(1, 0, (uint64_t)16, 2, 32);
   if (T_softmax_exp == NULL) {
     return -1;
   }
-  void* T_softmax_expsum = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)4, 2, 32);
+  void* T_softmax_expsum = TVMBackendAllocWorkspace(1, 0, (uint64_t)4, 2, 32);
   if (T_softmax_expsum == NULL) {
     return -1;
   }
@@ -2212,13 +2278,13 @@ TVM_DLL int32_t tvmgen_default_fused_nn_softmax(void* args, void* arg_type_ids, 
   for (int32_t i11 = 0; i11 < 4; ++i11) {
     ((float*)T_softmax_norm)[(i11)] = (((float*)T_softmax_exp)[(i11)] / ((float*)T_softmax_expsum)[(0)]);
   }
-  if (TVMBackendFreeWorkspace(1, dev_id, T_softmax_expsum) != 0) {
+  if (TVMBackendFreeWorkspace(1, 0, T_softmax_expsum) != 0) {
     return -1;
   }
-  if (TVMBackendFreeWorkspace(1, dev_id, T_softmax_exp) != 0) {
+  if (TVMBackendFreeWorkspace(1, 0, T_softmax_exp) != 0) {
     return -1;
   }
-  if (TVMBackendFreeWorkspace(1, dev_id, T_softmax_maxelem) != 0) {
+  if (TVMBackendFreeWorkspace(1, 0, T_softmax_maxelem) != 0) {
     return -1;
   }
   return 0;
@@ -2227,37 +2293,27 @@ TVM_DLL int32_t tvmgen_default_fused_nn_softmax(void* args, void* arg_type_ids, 
 #ifdef __cplusplus
 extern "C"
 #endif
-TVM_DLL int32_t tvmgen_default_fused_nn_contrib_dense_pack_add_fixed_point_multiply_add_clip_cast_cast_subtract_14669711146056581479_(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* arg2 = (((TVMValue*)args)[2].v_handle);
-  int32_t arg2_code = ((int32_t*)arg_type_ids)[(2)];
-  void* arg3 = (((TVMValue*)args)[3].v_handle);
-  int32_t arg3_code = ((int32_t*)arg_type_ids)[(3)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* placeholder1 = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  void* placeholder2 = (((DLTensor*)arg2)[0].data);
-  void* arg2_shape = (((DLTensor*)arg2)[0].shape);
-  void* arg2_strides = (((DLTensor*)arg2)[0].strides);
-  void* T_multiply = (((DLTensor*)arg3)[0].data);
-  void* arg3_shape = (((DLTensor*)arg3)[0].shape);
-  void* arg3_strides = (((DLTensor*)arg3)[0].strides);
-  if (!(arg0_strides == NULL)) {
+TVM_DLL int32_t tvmgen_default_fused_reshape_cast_subtract(void* arg0, void* arg1, void* arg2) {
+  void* placeholder = arg0;
+  void* placeholder1 = arg1;
+  void* T_subtract = arg2;
+  for (int32_t ax1_outer = 0; ax1_outer < 250; ++ax1_outer) {
+    for (int32_t ax1_inner = 0; ax1_inner < 16; ++ax1_inner) {
+      ((int16_t*)T_subtract)[(((ax1_outer * 16) + ax1_inner))] = (((int16_t)((int8_t*)placeholder)[(((ax1_outer * 16) + ax1_inner))]) - ((int16_t*)placeholder1)[(0)]);
+    }
   }
-  if (!(arg1_strides == NULL)) {
-  }
-  if (!(arg2_strides == NULL)) {
-  }
-  if (!(arg3_strides == NULL)) {
-  }
-  void* compute_global = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)16, 0, 32);
+  return 0;
+}
+
+#ifdef __cplusplus
+extern "C"
+#endif
+TVM_DLL int32_t tvmgen_default_fused_nn_contrib_dense_pack_add_fixed_point_multiply_add_clip_cast_cast_subtract_14669711146056581479_(void* arg0, void* arg1, void* arg2, void* arg3) {
+  void* placeholder = arg0;
+  void* placeholder1 = arg1;
+  void* placeholder2 = arg2;
+  void* T_multiply = arg3;
+  void* compute_global = TVMBackendAllocWorkspace(1, 0, (uint64_t)16, 0, 32);
   if (compute_global == NULL) {
     return -1;
   }
@@ -2274,7 +2330,7 @@ TVM_DLL int32_t tvmgen_default_fused_nn_contrib_dense_pack_add_fixed_point_multi
     int32_t _2 = (_1) < (127) ? (_1) : (127);
     ((float*)T_multiply)[(ax1_inner_inner)] = (((float)(((int32_t)((int8_t)((_2) > (-128) ? (_2) : (-128)))) - 29)) * 1.055452e-01f);
   }
-  if (TVMBackendFreeWorkspace(1, dev_id, compute_global) != 0) {
+  if (TVMBackendFreeWorkspace(1, 0, compute_global) != 0) {
     return -1;
   }
   return 0;
@@ -2283,230 +2339,43 @@ TVM_DLL int32_t tvmgen_default_fused_nn_contrib_dense_pack_add_fixed_point_multi
 #ifdef __cplusplus
 extern "C"
 #endif
-TVM_DLL int32_t tvmgen_default_fused_reshape_cast_subtract_1(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* arg2 = (((TVMValue*)args)[2].v_handle);
-  int32_t arg2_code = ((int32_t*)arg_type_ids)[(2)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* placeholder1 = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  void* T_subtract = (((DLTensor*)arg2)[0].data);
-  void* arg2_shape = (((DLTensor*)arg2)[0].shape);
-  void* arg2_strides = (((DLTensor*)arg2)[0].strides);
-  if (!(arg0_strides == NULL)) {
-  }
-  if (!(arg2_strides == NULL)) {
-  }
-  for (int32_t ax1_outer = 0; ax1_outer < 250; ++ax1_outer) {
-    for (int32_t ax1_inner = 0; ax1_inner < 16; ++ax1_inner) {
-      ((int16_t*)T_subtract)[(((ax1_outer * 16) + ax1_inner))] = (((int16_t)((int8_t*)placeholder)[(((ax1_outer * 16) + ax1_inner))]) - ((int16_t*)placeholder1)[(0)]);
-    }
-  }
-  return 0;
-}
-
-#ifdef __cplusplus
-extern "C"
-#endif
-TVM_DLL int32_t tvmgen_default_fused_nn_conv2d_add_cast_multiply_add_right_shift_cast_add_clip_cast_clip(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* arg2 = (((TVMValue*)args)[2].v_handle);
-  int32_t arg2_code = ((int32_t*)arg_type_ids)[(2)];
-  void* arg3 = (((TVMValue*)args)[3].v_handle);
-  int32_t arg3_code = ((int32_t*)arg_type_ids)[(3)];
-  void* arg4 = (((TVMValue*)args)[4].v_handle);
-  int32_t arg4_code = ((int32_t*)arg_type_ids)[(4)];
-  void* arg5 = (((TVMValue*)args)[5].v_handle);
-  int32_t arg5_code = ((int32_t*)arg_type_ids)[(5)];
-  void* arg6 = (((TVMValue*)args)[6].v_handle);
-  int32_t arg6_code = ((int32_t*)arg_type_ids)[(6)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* placeholder1 = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  void* placeholder2 = (((DLTensor*)arg2)[0].data);
-  void* arg2_shape = (((DLTensor*)arg2)[0].shape);
-  void* arg2_strides = (((DLTensor*)arg2)[0].strides);
-  void* placeholder3 = (((DLTensor*)arg3)[0].data);
-  void* arg3_shape = (((DLTensor*)arg3)[0].shape);
-  void* arg3_strides = (((DLTensor*)arg3)[0].strides);
-  void* placeholder4 = (((DLTensor*)arg4)[0].data);
-  void* arg4_shape = (((DLTensor*)arg4)[0].shape);
-  void* arg4_strides = (((DLTensor*)arg4)[0].strides);
-  void* placeholder5 = (((DLTensor*)arg5)[0].data);
-  void* arg5_shape = (((DLTensor*)arg5)[0].shape);
-  void* arg5_strides = (((DLTensor*)arg5)[0].strides);
-  void* compute = (((DLTensor*)arg6)[0].data);
-  void* arg6_shape = (((DLTensor*)arg6)[0].shape);
-  void* arg6_strides = (((DLTensor*)arg6)[0].strides);
-  if (!(arg0_strides == NULL)) {
-  }
-  if (!(arg1_strides == NULL)) {
-  }
-  if (!(arg2_strides == NULL)) {
-  }
-  if (!(arg3_strides == NULL)) {
-  }
-  if (!(arg4_strides == NULL)) {
-  }
-  if (!(arg5_strides == NULL)) {
-  }
-  if (!(arg6_strides == NULL)) {
-  }
-  void* PaddedInput = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)5336, 0, 16);
-  if (PaddedInput == NULL) {
+TVM_DLL int32_t tvmgen_default_run_model(void* arg0, void* arg1) {
+  void* input = arg0;
+  void* output = arg1;
+  void* sid_6 = TVMBackendAllocWorkspace(1, 0, (uint64_t)8000, 0, 8);
+  if (sid_6 == NULL) {
     return -1;
   }
-  for (int32_t i0_i1_fused = 0; i0_i1_fused < 58; ++i0_i1_fused) {
-    for (int32_t i2 = 0; i2 < 46; ++i2) {
-      ((int16_t*)PaddedInput)[(((i0_i1_fused * 46) + i2))] = (((((4 <= i0_i1_fused) && (i0_i1_fused < 53)) && (3 <= i2)) && (i2 < 43)) ? ((int16_t*)placeholder)[((((i0_i1_fused * 40) + i2) - 163))] : (int16_t)0);
-    }
+  void* sid_5 = TVMBackendAllocWorkspace(1, 0, (uint64_t)4000, 0, 8);
+  if (sid_5 == NULL) {
+    return -1;
   }
-  for (int32_t i0_i1_fused_i2_fused = 0; i0_i1_fused_i2_fused < 500; ++i0_i1_fused_i2_fused) {
-    void* Conv2dOutput = TVMBackendAllocWorkspace(1, dev_id, (uint64_t)4, 0, 32);
-    if (Conv2dOutput == NULL) {
-      return -1;
-    }
-    for (int32_t i3 = 0; i3 < 8; ++i3) {
-      ((int32_t*)Conv2dOutput)[(0)] = 0;
-      for (int32_t ry = 0; ry < 10; ++ry) {
-        for (int32_t rx = 0; rx < 8; ++rx) {
-          ((int32_t*)Conv2dOutput)[(0)] = (((int32_t*)Conv2dOutput)[(0)] + (((int32_t)((int16_t*)PaddedInput)[((((((i0_i1_fused_i2_fused / 20) * 92) + (ry * 46)) + ((i0_i1_fused_i2_fused % 20) * 2)) + rx))]) * ((int32_t)((int16_t*)placeholder1)[((((ry * 64) + (rx * 8)) + i3))])));
-        }
-      }
-      int32_t _1 = ((int32_t)((((((int64_t)((int32_t*)Conv2dOutput)[(0)]) + ((int64_t)((int32_t*)placeholder2)[(i3)])) * ((int64_t*)placeholder3)[(i3)]) + ((int64_t*)placeholder4)[(i3)]) >> ((int64_t*)placeholder5)[(i3)])) - 128;
-      int32_t _2 = (_1) < (127) ? (_1) : (127);
-      int8_t _3 = (int8_t)((_2) > (-128) ? (_2) : (-128));
-      int8_t _4 = (int8_t)127;
-      int8_t _5 = (_3) < (_4) ? (_3) : (_4);
-      int8_t _6 = (int8_t)-128;
-      ((int8_t*)compute)[(((i0_i1_fused_i2_fused * 8) + i3))] = ((_5) > (_6) ? (_5) : (_6));
-    }
-    if (TVMBackendFreeWorkspace(1, dev_id, Conv2dOutput) != 0) {
-      return -1;
-    }
+  void* sid_3 = TVMBackendAllocWorkspace(1, 0, (uint64_t)16, 0, 8);
+  if (sid_3 == NULL) {
+    return -1;
   }
-  if (TVMBackendFreeWorkspace(1, dev_id, PaddedInput) != 0) {
+  void* sid_2 = TVMBackendAllocWorkspace(1, 0, (uint64_t)16, 0, 8);
+  if (sid_2 == NULL) {
+    return -1;
+  }
+  (void)tvmgen_default_fused_reshape_cast_subtract_1(input, __tvm_param__p0, sid_6);
+  (void)tvmgen_default_fused_nn_conv2d_add_cast_multiply_add_right_shift_cast_add_clip_cast_clip(sid_6, __tvm_param__p1, __tvm_param__p2, __tvm_param__p3, __tvm_param__p4, __tvm_param__p5, sid_5);
+  (void)tvmgen_default_fused_reshape_cast_subtract(sid_5, __tvm_param__p6, sid_6);
+  (void)tvmgen_default_fused_nn_contrib_dense_pack_add_fixed_point_multiply_add_clip_cast_cast_subtract_14669711146056581479_(sid_6, __tvm_param__p7, __tvm_param__p8, sid_3);
+  (void)tvmgen_default_fused_nn_softmax(sid_3, sid_2);
+  (void)tvmgen_default_fused_divide_add_round_cast_clip_cast(sid_2, output);
+  if (TVMBackendFreeWorkspace(1, 0, sid_2) != 0) {
+    return -1;
+  }
+  if (TVMBackendFreeWorkspace(1, 0, sid_3) != 0) {
+    return -1;
+  }
+  if (TVMBackendFreeWorkspace(1, 0, sid_5) != 0) {
+    return -1;
+  }
+  if (TVMBackendFreeWorkspace(1, 0, sid_6) != 0) {
     return -1;
   }
   return 0;
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
-TVM_DLL int32_t tvmgen_default_fused_divide_add_round_cast_clip_cast(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* T_cast = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  if (!(arg0_strides == NULL)) {
-  }
-  if (!(arg1_strides == NULL)) {
-  }
-  for (int32_t ax1_inner = 0; ax1_inner < 4; ++ax1_inner) {
-    int32_t _1 = (int32_t)roundf(((((float*)placeholder)[(ax1_inner)] * 2.560000e+02f) + -1.280000e+02f));
-    int32_t _2 = (_1) < (127) ? (_1) : (127);
-    ((int8_t*)T_cast)[(ax1_inner)] = ((int8_t)((_2) > (-128) ? (_2) : (-128)));
-  }
-  return 0;
-}
-
-#ifdef __cplusplus
-extern "C"
-#endif
-TVM_DLL int32_t tvmgen_default_fused_reshape_cast_subtract(void* args, void* arg_type_ids, int32_t num_args, void* out_ret_value, void* out_ret_tcode, void* resource_handle) {
-  void* arg0 = (((TVMValue*)args)[0].v_handle);
-  int32_t arg0_code = ((int32_t*)arg_type_ids)[(0)];
-  void* arg1 = (((TVMValue*)args)[1].v_handle);
-  int32_t arg1_code = ((int32_t*)arg_type_ids)[(1)];
-  void* arg2 = (((TVMValue*)args)[2].v_handle);
-  int32_t arg2_code = ((int32_t*)arg_type_ids)[(2)];
-  void* placeholder = (((DLTensor*)arg0)[0].data);
-  void* arg0_shape = (((DLTensor*)arg0)[0].shape);
-  void* arg0_strides = (((DLTensor*)arg0)[0].strides);
-  int32_t dev_id = (((DLTensor*)arg0)[0].device.device_id);
-  void* placeholder1 = (((DLTensor*)arg1)[0].data);
-  void* arg1_shape = (((DLTensor*)arg1)[0].shape);
-  void* arg1_strides = (((DLTensor*)arg1)[0].strides);
-  void* T_subtract = (((DLTensor*)arg2)[0].data);
-  void* arg2_shape = (((DLTensor*)arg2)[0].shape);
-  void* arg2_strides = (((DLTensor*)arg2)[0].strides);
-  if (!(arg0_strides == NULL)) {
-  }
-  if (!(arg2_strides == NULL)) {
-  }
-  for (int32_t ax0_ax1_fused = 0; ax0_ax1_fused < 49; ++ax0_ax1_fused) {
-    for (int32_t ax2 = 0; ax2 < 40; ++ax2) {
-      ((int16_t*)T_subtract)[(((ax0_ax1_fused * 40) + ax2))] = (((int16_t)((int8_t*)placeholder)[(((ax0_ax1_fused * 40) + ax2))]) - ((int16_t*)placeholder1)[(0)]);
-    }
-  }
-  return 0;
-}
-
-#ifdef __cplusplus
-extern "C"
-#endif
-TVM_DLL int32_t _lookup_linked_param(void* args, int* arg_type_ids, int num_args, void* out_ret_value, int* out_ret_tcode, void* resource_handle) {
-    switch (((int64_t*) args)[0]) {
-    default:
-        out_ret_tcode[0] = 4;
-        return 0;
-    case 10:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p7;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 3:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p1;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 11:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p8;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 1:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p0;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 6:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p4;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 4:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p2;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 5:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p3;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 7:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p5;
-        out_ret_tcode[0] = 3;
-        return 0;
-    case 9:
-        ((uint64_t*)out_ret_value)[0] = (uint64_t) (uintptr_t) __tvm_param__p6;
-        out_ret_tcode[0] = 3;
-        return 0;
-    }
-}
