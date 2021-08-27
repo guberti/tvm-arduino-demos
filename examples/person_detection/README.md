@@ -118,15 +118,12 @@ The `project.ino` file that is generated with our sketch is pretty bare:
 ```c
 #include "src/model.h"
 
-static Model model;
-
 void setup() {
-  model = Model();
-  //model.inference(input_data, output_data);
+  TVMInitialize();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  //TVMExecute(input_data, output_data);
 }
 ```
 
@@ -142,7 +139,7 @@ We'll then define a function that will run inference on an image, and display th
 ```c
 void testInference(uint8_t input_data[9216]) {
   uint8_t output[3];
-  model.inference(input_data, output);
+  TVMExecute(input_data, output);
   
   for(int i = 0; i < 3; i++) {
     Serial.print(output[i]);
@@ -157,7 +154,7 @@ Lastly, we'll change setup to instantiate our model and call `testInference` on 
 ```c
 void setup() {
   Serial.begin(9600);
-  model = Model();
+  TVMInitialize();
 
   Serial.println("Person results:");
   testInference(person_data);
@@ -193,14 +190,13 @@ To build our demo, we'll need to import the Spresense's camera library at the to
 //// Global variables ////
 static uint8_t INPUT_BUF[96 * 96];
 static uint8_t OUTPUT_BUF[3];
-static Model model;
 ```
 
 In order to get the fastest framerate, we will use this library to stream 320x240 YUV422 frames to a callback function. We will set this up in our `setup` function:
 
 ```c
 void setup() {
-  model = Model();
+  TVMInitialize();
   theCamera.begin();
   theCamera.startStreaming(true, CamCB);
 }
@@ -247,7 +243,7 @@ We must now crop and scale the image to be 96x96. The Spresense has a library fu
 All we have to do now is performe inference and compare the two values in our output tensor:
 
 ```
-  model.inference(INPUT_BUF, OUTPUT_BUF);
+  TVMExecute(INPUT_BUF, OUTPUT_BUF);
   boolean detectedPerson = OUTPUT_BUF[1] > OUTPUT_BUF[2];
   digitalWrite(LED_BUILTIN, detectedPerson);
 ```
