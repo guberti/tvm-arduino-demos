@@ -177,15 +177,13 @@ The `project.ino` file that is generated with our sketch is pretty bare:
 ```c
 #include "src/model.h"
 
-static Model model;
-
 void setup() {
-  model = Model();
-  //model.inference(input_data, output_data);
+  TVMInitialize();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  //TVMExecute(input_data, output_data);
 }
 ```
 
@@ -201,7 +199,7 @@ We'll then define a function that will run inference on an image, and display th
 ```c
 void testInference(int8_t input_data[1920]) {
   int8_t output[4];
-  model.inference(input_data, output);
+  TVMExecute(input_data, output);
   
   for(int i = 0; i < 4; i++) {
     Serial.print(output[i]);
@@ -216,7 +214,7 @@ Lastly, we'll change setup to instantiate our model and call `testInference` on 
 ```c
 void setup() {
   Serial.begin(9600);
-  model = Model();
+  TVMInitialize();
 
   Serial.println("Yes results:");
   testInference(yes_data);
